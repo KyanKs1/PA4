@@ -1,6 +1,6 @@
 #pragma once
 #include "RedBlackNode.h"
-
+#include <queue>
 class RedBlackTree
 {
 public:
@@ -22,6 +22,7 @@ public:
     }
     //The following insert function and helper functions are from the textbook
     //i used a node class instead of structs and edited the pointer work in rotate 
+    //uses getters instead of comparsion operator
     void insert(InventoryRecord& x)
     {
         current = parent = grand = header;
@@ -62,14 +63,15 @@ public:
             if (item.getId() < theParent->getLeft()->getId()) {
                 RedBlackNode* temp = theParent->getLeft();
                 rotateWithLeftChild(temp);  // LL
-               theParent->setLeft(temp);
-
+                theParent->setLeft(temp);
+              
+               
                 //Changes without temp cannot be made due to temp value in ge
             }
             else {
                 RedBlackNode* temp2 = theParent->getLeft();
                 rotateWithRightChild(temp2); 
-                theParent->setRight(temp2);// LR
+                theParent->setLeft(temp2);// LR
             }
             return theParent->getLeft();
         }
@@ -78,7 +80,7 @@ public:
             if (item.getId() < theParent->getRight()->getId()) {
                 RedBlackNode* temp = theParent->getRight();
                 rotateWithLeftChild(temp);
-                theParent->setLeft(temp);// RL
+                theParent->setRight(temp);// RL
             }
             else {
                 RedBlackNode* temp2 = theParent->getRight();
@@ -93,18 +95,35 @@ public:
 
     void rotateWithLeftChild(RedBlackNode*& k2)
     {
+        if (k2 == nullptr) {
+            // Handle null pointer case
+            return;
+        }
         RedBlackNode* k1 = k2->getLeft();
+        if (k1 == nullptr) {
+            // Handle null pointer case
+            return;
+        }
         k2->setLeft(k1->getRight());
         k1->setRight(k2);
         k2 = k1;
     }
     void rotateWithRightChild(RedBlackNode*& k1)
     {
+        if (k1 == nullptr) {
+            // Handle null pointer case
+            return;
+        }
         RedBlackNode* k2 = k1->getRight();
+        if (k2 == nullptr) {
+            // Handle null pointer case
+            return;
+        }
         k1->setRight(k2->getLeft());
         k2->setLeft(k1);
         k1 = k2;
     }
+
     void handleReorient(InventoryRecord& item)
     {
         // Do the color flip
@@ -115,7 +134,7 @@ public:
         if (parent->getColor() == RedBlackNode::RED)   // Have to rotate
         {
             grand->setColor(RedBlackNode::RED);
-            if (item.getId() < grand->getId() != item.getId() < parent->getId())
+            if ((item.getId() < grand->getId()) != (item.getId() < parent->getId()))
                 parent = rotate(item, grand);  // Start dbl rotate
             current = rotate(item, great);
             current->setColor(RedBlackNode::BLACK);
@@ -143,34 +162,77 @@ public:
     {
         if (t != t->getLeft())
         {
+            int color = t->getColor();
+            string c;
+            if (color == RedBlackNode::BLACK) {
+                c = "Black";
+            }
+            else {
+                c = "Red";
+            }
             printTree(t->getLeft());
-            cout << t->getId() << "," << t->getType() << " " << t->getNum() << endl;
+            cout << t->getId() << "," << t->getType() << " " << t->getNum() << " " << c << endl;
             printTree(t->getRight());
         }
     }
 
     //Below is print level order which uses recursion to find max level then prints from there
-    // it uses 2 helper function in its incorperation.
-    void printLevelorder() const {
-        int h = getHeight(header->getRight());
-        for (int i = 1; i <= h; ++i) {
-            printGivenLevel(header->getRight(), i);
-        }
-    }
-
-    void printGivenLevel(RedBlackNode* node, int level) const {
-        if (node == nullNode || node == header || level < 1) {
+    // it uses 2 helper function in its incorperation. also uses STL queue in implmentation
+    void printLevelOrder() const {
+        if (header->getRight() == nullNode) {
             return;
         }
 
-        if (level == 1) {
-            cout << node->getData().getId() << " ";
-        }
-        else if (level > 1) {
-            printGivenLevel(node->getLeft(), level - 1);
-            printGivenLevel(node->getRight(), level - 1);
+        queue<RedBlackNode*> q;
+        q.push(header->getRight());
+
+        while (!q.empty()) {
+            int levelSize = q.size();
+
+            for (int i = 0; i < levelSize; i++) {
+                RedBlackNode* node = q.front();
+                q.pop();
+                int color = node->getColor();
+                string c;
+                if (color == RedBlackNode::BLACK) {
+                     c = "Black";
+                }
+                else {
+                     c = "Red";
+                }
+                cout << node->getData().getId() <<" " << node->getData().getType() << " " << node->getData().getNum() << " at level " << getLevel(node) << " (" << c << ")" << endl;
+
+                if (node->getLeft() != nullNode) {
+                    q.push(node->getLeft());
+                }
+                if (node->getRight() != nullNode) {
+                    q.push(node->getRight());
+                }
+            }
         }
     }
+    //returns level of node
+    int getLevel(RedBlackNode* node) const {
+        int level = 0;
+        RedBlackNode* curr = header->getRight();
+
+        while (curr != nullNode) {
+            if (node->getData().getId() == curr->getData().getId()) {
+                return level;
+            }
+            else if (node->getData().getId() < curr->getData().getId()) {
+                curr = curr->getLeft();
+            }
+            else {
+                curr = curr->getRight();
+            }
+            level++;
+        }
+
+        return -1;  // node not found in tree
+    }
+
+    //returns height of node
     int getHeight(RedBlackNode* node) const {
         if (node == nullNode || node == header) {
             return 0;
@@ -188,6 +250,47 @@ public:
             cout << "Empty tree" << endl;
         else
             printTree(header->getRight());
+    }
+
+    //Updatenode searches all nodes of tree till it finds one with matching Id to prompt changes
+    //Elss it wont do anything
+    void updateNode(int id, RedBlackNode* root)
+    {
+        RedBlackNode* current = root;
+        while (current != current->getLeft())
+        {
+            if (id == current->getId())
+            {
+                int user;
+                string p;
+                cout << " Found Record to change..." << endl;
+                cout << "New Id? ";
+                cin >> user;
+                cout << "new type? ";
+                cin >> p;
+                InventoryRecord pnew;
+                pnew.setId(user);
+                pnew.setType(p);
+                cout << "New amount? ";
+                cin >> user;
+                pnew.setNumOf(user);
+                current->setData(pnew);
+                cout << "Succsessfull Change" << endl;
+                break;
+            }
+            else if (id < current->getId())
+            {
+                current = current->getLeft();
+            }
+            else
+            {
+                current = current->getRight();
+            }
+        }
+    }
+    //stadard getter for header
+    RedBlackNode* getHeader() {
+        return header;
     }
 
 

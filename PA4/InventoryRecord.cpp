@@ -7,7 +7,7 @@ InventoryRecord::InventoryRecord(int id, string type, int numOf) {
 }
 //Destructor prints for testing
 InventoryRecord::~InventoryRecord() {
-	cout << "Deleteing Record" << endl;
+
 }
 //Below are a bunch of getters and setters
 int InventoryRecord::getId() {
